@@ -9,20 +9,34 @@ interface Props {
 }
 
 export const AssessmentStep = ({ state, onNext, onBack }: Props) => {
+  const gradeNum = parseInt(state.grade?.match(/\d+/)?.[0] || '1', 10);
+  
+  const displayAssessments = ASSESSMENTS.map(ass => {
+    if (ass.id === 'exam' && gradeNum < 9) {
+      return {
+        ...ass,
+        title: 'Подготовка к ВПР и олимпиадам',
+        description: 'Целенаправленная подготовка к контрольным работам и школьным олимпиадам',
+        emoji: '🏆'
+      };
+    }
+    return ass;
+  });
+
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-[#E8F1F8] to-[#FFFFFF] sm:rounded-[24px]">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-gradient-to-br from-[#E8F1F8] to-[#FFFFFF] sm:rounded-[24px]">
       <header className="px-[30px] h-[70px] flex items-center border-b border-[#E4E6EB]/50 bg-transparent sm:rounded-t-[24px] z-10 shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 text-[#65676B] hover:text-[#1A1A1B] rounded-full hover:bg-black/5 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="ml-2 flex-1 pt-1">
             <h2 className="font-bold text-[18px] text-[#1A1A1B] leading-none">Какая у вас цель?</h2>
-            <div className="text-[11px] font-semibold uppercase text-[#65676B] mt-1 track-widest">ШАГ 2 ИЗ 5</div>
+            <div className="text-[11px] font-semibold uppercase text-[#65676B] mt-1 track-widest">ШАГ 3 ИЗ 5</div>
         </div>
       </header>
 
       <div className="flex-1 p-[20px] overflow-y-auto space-y-[12px]">
-        {ASSESSMENTS.map((ass) => {
+        {displayAssessments.map((ass) => {
           const isSelected = state.assessment === ass.id;
           return (
             <button

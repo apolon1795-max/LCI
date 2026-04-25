@@ -8,6 +8,8 @@ export const Mascot = ({ className, style }: { className?: string, style?: CSSPr
       className={`object-contain mix-blend-multiply ${className || ''}`} 
       style={style}
       referrerPolicy="no-referrer"
+      fetchPriority="high"
+      loading="eager"
     />
   );
 };

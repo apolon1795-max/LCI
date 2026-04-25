@@ -27,24 +27,27 @@ export const ContactStep = ({ state, onNext, onBack }: Props) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-[#E8F1F8] to-[#FFFFFF] sm:rounded-[24px]">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-gradient-to-br from-[#E8F1F8] to-[#FFFFFF] sm:rounded-[24px]">
       <header className="px-[30px] h-[70px] flex items-center border-b border-[#E4E6EB]/50 bg-transparent sm:rounded-t-[24px] z-10 shrink-0">
         <button onClick={onBack} className="p-2 -ml-2 text-[#65676B] hover:text-[#1A1A1B] rounded-full hover:bg-black/5 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="ml-2 flex-1 pt-1">
             <h2 className="font-bold text-[18px] text-[#1A1A1B] leading-none">Оформление</h2>
-            <div className="text-[11px] font-semibold uppercase text-[#65676B] mt-1 track-widest">ПОСЛЕДНИЙ ШАГ</div>
+            <div className="text-[11px] font-semibold uppercase text-[#65676B] mt-1 track-widest">ШАГ 6 ИЗ 6</div>
         </div>
       </header>
 
       <div className="flex-1 p-[30px] overflow-y-auto">
-        <h3 className="font-bold text-[22px] text-[#1A1A1B] mb-[10px]">
-          Оставьте контакты
-        </h3>
-        <p className="text-[14px] text-[#65676B] mb-[30px] leading-relaxed">
-          Менеджер свяжется с вами, чтобы подтвердить время первого занятия и ответить на все вопросы.
-        </p>
+        <div className="bg-[#E8F1F8] border border-[#0054A6]/10 rounded-[16px] p-[16px] flex items-center text-left gap-4 shadow-sm mb-[20px]">
+            <div className="w-12 h-12 bg-white rounded-full shrink-0 flex items-center justify-center shadow-sm relative z-10">
+                <span className="text-[#FFB800] drop-shadow-sm text-[24px]">⭐</span>
+            </div>
+            <div className="relative z-10 flex-1">
+                <div className="text-[14px] font-bold text-[#1A1A1B] leading-snug">Супер! Вы собрали все 5 звезд!</div>
+                <div className="text-[13px] text-[#65676B] leading-tight mt-1">Оставьте контакты, чтобы забронировать место и забрать приветственный набор.</div>
+            </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-[20px]">
           <div>

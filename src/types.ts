@@ -23,6 +23,7 @@ export interface Subject {
     id: string;
     name: string;
     emoji: string;
+    minGrade?: number;
 }
 
 export interface Branch {
@@ -30,6 +31,9 @@ export interface Branch {
     name: string;
     address: string;
     coordinates?: [number, number]; // [lat, lng]
+    schedule?: string;
+    phone?: string;
+    email?: string;
 }
 
 export interface Teacher {
