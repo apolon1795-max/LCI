@@ -1,3 +1,4 @@
+
 import { MetadataCredentialsProvider } from '@ydbjs/auth/metadata';
 import { Driver } from '@ydbjs/core';
 import { query, QueryClient } from '@ydbjs/query';
@@ -159,15 +160,15 @@ export class YdbLeadStorage implements LeadStorage {
           consent_url, page_url, utm_json, payload_json,
           telegram_status, email_status
         )
-        SELECT
-          lead_id, stored_at, created_at, source, gift_code,
-          contact_name, contact_phone, contact_email, grade,
-          subject_id, subject_name, assessment_id, assessment_name,
-          branch_id, branch_name, branch_address,
-          teacher_id, teacher_name, teacher_is_demo,
-          consent_url, page_url, utm_json, payload_json,
-          telegram_status, email_status
-        FROM AS_TABLE(${[record]})
+        VALUES (
+          ${record.lead_id}, ${record.stored_at}, ${record.created_at}, ${record.source}, ${record.gift_code},
+          ${record.contact_name}, ${record.contact_phone}, ${record.contact_email}, ${record.grade},
+          ${record.subject_id}, ${record.subject_name}, ${record.assessment_id}, ${record.assessment_name},
+          ${record.branch_id}, ${record.branch_name}, ${record.branch_address},
+          ${record.teacher_id}, ${record.teacher_name}, ${record.teacher_is_demo},
+          ${record.consent_url}, ${record.page_url}, ${record.utm_json}, ${record.payload_json},
+          ${record.telegram_status}, ${record.email_status}
+        )
       `;
       return {
         duplicate: false,
