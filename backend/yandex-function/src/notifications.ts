@@ -1,12 +1,40 @@
+
 import nodemailer from 'nodemailer';
+import { setDefaultResultOrder } from 'node:dns';
+import { lookup } from 'node:dns/promises';
 import { LeadSubmission, NotificationDelivery } from './types.js';
 
-const TELEGRAM_TIMEOUT_MS = 5_000;
+const TELEGRAM_TIMEOUT_MS = 8_000;
 const EMAIL_TIMEOUT_MS = 7_000;
+
+setDefaultResultOrder('ipv4first');
 
 export interface NotificationStatuses {
   telegram: Exclude<NotificationDelivery, 'pending'>;
   email: Exclude<NotificationDelivery, 'pending'>;
+}
+
+interface TelegramApiResponse {
+  ok?: unknown;
+  error_code?: unknown;
+  description?: unknown;
+}
+
+interface TelegramRelayResponse {
+  ok?: unknown;
+  error?: unknown;
+  errorCode?: unknown;
+}
+
+async function telegramDnsSummary(): Promise<Array<{ address: string; family: number }> | string> {
+  try {
+    return await Promise.race([
+      lookup('api.telegram.org', { all: true }),
+      new Promise<string>((resolve) => setTimeout(() => resolve('lookup-timeout'), 1_500)),
+    ]);
+  } catch (error) {
+    return error instanceof Error ? error.name : 'lookup-failed';
+  }
 }
 
 function envFlag(name: string, fallback: boolean): boolean {
@@ -59,6 +87,54 @@ async function sendTelegram(payload: LeadSubmission, giftCode: string): Promise<
   const message = buildNotificationText(payload, giftCode, includeContacts);
   const html = escapeHtml(message);
 
+  const relayUrl = process.env.TELEGRAM_RELAY_URL?.trim();
+  const relaySecret = process.env.TELEGRAM_RELAY_SECRET?.trim();
+  if (relayUrl || relaySecret) {
+    if (!relayUrl || !relaySecret) {
+      console.error('Telegram relay configuration is incomplete');
+      return 'failed';
+    }
+
+    let parsedRelayUrl: URL;
+    try {
+      parsedRelayUrl = new URL(relayUrl);
+    } catch {
+      console.error('Telegram relay URL is invalid');
+      return 'failed';
+    }
+    if (parsedRelayUrl.protocol !== 'https:') {
+      console.error('Telegram relay URL must use HTTPS');
+      return 'failed';
+    }
+
+    try {
+      const response = await fetch(parsedRelayUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-LCI-Relay-Secret': relaySecret,
+        },
+        body: JSON.stringify({ botToken: token, chatId, text: html }),
+        signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
+      });
+      const body = await response.json().catch(() => null) as TelegramRelayResponse | null;
+      if (!response.ok || body?.ok !== true) {
+        console.error('Telegram relay failed', {
+          status: response.status,
+          error: typeof body?.error === 'string' ? body.error.slice(0, 100) : undefined,
+          errorCode: typeof body?.errorCode === 'number' ? body.errorCode : undefined,
+        });
+        return 'failed';
+      }
+      return 'sent';
+    } catch (error) {
+      console.error('Telegram relay request failed', {
+        error: error instanceof Error ? error.name : 'UnknownError',
+      });
+      return 'failed';
+    }
+  }
+
   try {
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -71,10 +147,27 @@ async function sendTelegram(payload: LeadSubmission, giftCode: string): Promise<
       }),
       signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
     });
-    if (!response.ok) return 'failed';
-    const body = await response.json().catch(() => null) as { ok?: unknown } | null;
-    return body?.ok === true ? 'sent' : 'failed';
-  } catch {
+    const body = await response.json().catch(() => null) as TelegramApiResponse | null;
+    if (!response.ok || body?.ok !== true) {
+      console.error('Telegram notification failed', {
+        status: response.status,
+        errorCode: typeof body?.error_code === 'number' ? body.error_code : undefined,
+        description: typeof body?.description === 'string' ? body.description.slice(0, 300) : undefined,
+      });
+      return 'failed';
+    }
+    return 'sent';
+  } catch (error) {
+    const cause = error && typeof error === 'object' && 'cause' in error
+      ? (error as { cause?: { code?: unknown } }).cause
+      : undefined;
+    console.error('Telegram notification request failed', {
+      error: error instanceof Error ? error.name : 'UnknownError',
+      causeCode: typeof cause?.code === 'string' || typeof cause?.code === 'number'
+        ? cause.code
+        : undefined,
+      dns: await telegramDnsSummary(),
+    });
     return 'failed';
   }
 }
