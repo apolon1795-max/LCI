@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, MapPin } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, MapPinned } from 'lucide-react';
 import { BRANCHES } from '../data';
 import { AppState } from '../types';
 
@@ -12,15 +12,14 @@ interface Props {
 export const BranchStep = ({ state, onNext, onBack }: Props) => {
   const [localBranch, setLocalBranch] = useState<string | null>(state.branch);
   const selectedBranchObj = BRANCHES.find(b => b.id === localBranch);
-  
-  const mapUrl = selectedBranchObj 
-    ? `https://yandex.ru/map-widget/v1/?mode=search&text=${encodeURIComponent('Ижевск, ' + selectedBranchObj.address)}&z=16`
-    : `https://yandex.ru/map-widget/v1/?mode=search&text=${encodeURIComponent('Ижевск')}&z=11`;
+  const mapUrl = selectedBranchObj
+    ? `https://yandex.ru/maps/?text=${encodeURIComponent(`Ижевск, ${selectedBranchObj.address}`)}`
+    : null;
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 bg-gradient-to-br from-[#E8F1F8] to-[#FFFFFF] sm:rounded-[24px]">
       <header className="px-[30px] h-[70px] flex items-center border-b border-[#E4E6EB]/50 bg-transparent sm:rounded-t-[24px] z-10 shrink-0">
-        <button onClick={onBack} className="p-2 -ml-2 text-[#65676B] hover:text-[#1A1A1B] rounded-full hover:bg-black/5 transition-colors">
+        <button type="button" onClick={onBack} aria-label="Вернуться назад" className="p-2 -ml-2 text-[#65676B] hover:text-[#1A1A1B] rounded-full hover:bg-black/5 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="ml-2 flex-1 pt-1">
@@ -30,16 +29,29 @@ export const BranchStep = ({ state, onNext, onBack }: Props) => {
       </header>
 
       <div className="flex-1 p-[30px] overflow-y-auto space-y-[20px] flex flex-col">
-        {/* Yandex Maps Iframe */}
-        <div className="w-full h-[220px] rounded-[16px] overflow-hidden border border-[#E4E6EB] mb-[20px] shadow-sm relative shrink-0">
-          <iframe 
-            src={mapUrl}
-            width="100%" 
-            height="100%" 
-            frameBorder="0" 
-            allowFullScreen={true}
-            className="absolute inset-0"
-          />
+        <div className="w-full min-h-[132px] rounded-[16px] border border-[#0054A6]/10 bg-[#E8F1F8] p-5 shadow-sm shrink-0 flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#0054A6] shadow-sm">
+            <MapPinned size={24} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-bold text-[#1A1A1B]">
+              {selectedBranchObj ? selectedBranchObj.name : 'Сначала выберите филиал'}
+            </div>
+            <div className="mt-1 text-[13px] leading-snug text-[#65676B]">
+              {selectedBranchObj ? selectedBranchObj.address : 'Адрес и ссылка на карту появятся здесь.'}
+            </div>
+            {mapUrl ? (
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-[#0054A6] underline underline-offset-2 hover:text-[#E31E24]"
+              >
+                Открыть на Яндекс Картах
+                <ExternalLink size={14} />
+              </a>
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-[12px] pb-[10px] flex-1">
@@ -47,6 +59,7 @@ export const BranchStep = ({ state, onNext, onBack }: Props) => {
           const isSelected = localBranch === branch.id;
           return (
             <button
+              type="button"
               key={branch.id}
               onClick={() => setLocalBranch(branch.id)}
               className={`w-full flex items-start p-[16px] rounded-[16px] border-2 transition-all cursor-pointer text-left ${
@@ -90,6 +103,7 @@ export const BranchStep = ({ state, onNext, onBack }: Props) => {
         </div>
 
         <button 
+          type="button"
           onClick={() => localBranch && onNext(localBranch)}
           disabled={!localBranch}
           className={`w-full py-[15px] px-[32px] rounded-[12px] font-bold text-[16px] flex items-center justify-center transition-all shrink-0 mt-[10px] ${

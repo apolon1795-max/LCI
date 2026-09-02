@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Star } from 'lucide-react';
-import { AppStep, AppState } from './types';
+import { AppStep, AppState, ContactDetails } from './types';
 import { WelcomeStep } from './components/WelcomeStep';
 import { SubjectStep } from './components/SubjectStep';
 import { AssessmentStep } from './components/AssessmentStep';
@@ -10,21 +9,41 @@ import { BranchStep } from './components/BranchStep';
 import { TeacherStep } from './components/TeacherStep';
 import { ContactStep } from './components/ContactStep';
 import { SuccessStep } from './components/SuccessStep';
+import { StarProgress } from './components/StarProgress';
+import {
+  buildLeadSubmission,
+  LeadFormMeta,
+  LeadReceipt,
+  submitLead,
+} from './lib/leadCapture';
+import { TEACHERS } from './data';
 
-const STEP_ORDER: AppStep[] = ['welcome', 'grade', 'subject', 'assessment', 'branch', 'teacher', 'contact', 'success'];
+const STAR_PROGRESS: Record<AppStep, number> = {
+  welcome: 0,
+  grade: 0,
+  subject: 1,
+  assessment: 2,
+  branch: 3,
+  teacher: 4,
+  contact: 5,
+  success: 5,
+};
+
+const EMPTY_STATE: AppState = {
+  subject: null,
+  assessment: null,
+  grade: null,
+  branch: null,
+  teacher: null,
+  parentName: null,
+  parentPhone: null,
+  parentEmail: null,
+};
 
 export default function App() {
   const [step, setStep] = useState<AppStep>('welcome');
-  const [state, setState] = useState<AppState>({
-    subject: null,
-    assessment: null,
-    grade: null,
-    branch: null,
-    teacher: null,
-    parentName: null,
-    parentPhone: null,
-    parentEmail: null,
-  });
+  const [state, setState] = useState<AppState>(EMPTY_STATE);
+  const [receipt, setReceipt] = useState<LeadReceipt | null>(null);
 
   const updateState = (updates: Partial<AppState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -34,20 +53,26 @@ export default function App() {
     setStep(target);
   };
 
-  const stepIndex = STEP_ORDER.indexOf(step);
-  
-  // Calculate collected stars based on current step progress
-  const starsCount = useMemo(() => {
-     let count = 0;
-     if (stepIndex >= STEP_ORDER.indexOf('subject')) count++;
-     if (stepIndex >= STEP_ORDER.indexOf('assessment')) count++;
-     if (stepIndex >= STEP_ORDER.indexOf('branch')) count++;
-     if (stepIndex >= STEP_ORDER.indexOf('teacher')) count++;
-     if (stepIndex >= STEP_ORDER.indexOf('contact')) count++;
-     return count;
-  }, [stepIndex]);
+  const submitContact = async (contact: ContactDetails, meta: LeadFormMeta) => {
+    const finalState: AppState = {
+      ...state,
+      parentName: contact.name,
+      parentPhone: contact.phone,
+      parentEmail: contact.email,
+    };
+    const payload = buildLeadSubmission(finalState, contact, meta);
+    const storedReceipt = await submitLead(payload);
 
-  const maxStars = 5;
+    setState(finalState);
+    setReceipt(storedReceipt);
+    nextStep('success');
+  };
+
+  const restart = () => {
+    setState(EMPTY_STATE);
+    setReceipt(null);
+    nextStep('welcome');
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -112,24 +137,18 @@ export default function App() {
         return (
           <ContactStep
             state={state}
-            onNext={({name, phone, email}) => {
-              const finalState = { ...state, parentName: name, parentPhone: phone, parentEmail: email };
-              updateState({ parentName: name, parentPhone: phone, parentEmail: email });
-              
-              // ЗДЕСЬ ВСЕ НАКОПЛЕННЫЕ ДАННЫЕ ОТПРАВЛЯЮТСЯ В CRM / Telegram / СМС
-              console.log('--- ОТПРАВКА ЗАЯВКИ В CRM ---');
-              console.log('Собранные данные:', JSON.stringify(finalState, null, 2));
-              
-              nextStep('success');
-            }}
+            onSubmit={submitContact}
             onBack={() => nextStep('teacher')}
           />
         );
       case 'success':
-        return <SuccessStep onBackToStart={() => {
-            setState({ subject: null, assessment: null, grade: null, branch: null, teacher: null, parentName: null, parentPhone: null, parentEmail: null });
-            nextStep('welcome');
-        }} />;
+        return receipt ? (
+          <SuccessStep
+            receipt={receipt}
+            selectedTeacherName={TEACHERS.find((teacher) => teacher.id === state.teacher)?.name}
+            onBackToStart={restart}
+          />
+        ) : null;
       default:
         return null;
     }
@@ -139,26 +158,7 @@ export default function App() {
     <div className="min-h-screen bg-[#F4F7F9] font-['Helvetica_Neue',Arial,sans-serif] text-[#1A1A1B] flex flex-col justify-center items-center">
       <main className="w-full h-[100dvh] sm:h-auto sm:max-h-[85vh] max-w-[480px] sm:rounded-[24px] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] relative flex flex-col overflow-hidden">
         {step !== 'welcome' && step !== 'success' && (
-           <div className="bg-[#E8F1F8] text-[#0054A6] px-4 py-2.5 flex items-center justify-between text-[13px] font-medium shrink-0 border-b border-[#0054A6]/10 z-20">
-             <div className="flex items-center gap-2">
-               <Star size={16} className={stepIndex > 1 ? 'fill-[#FFB800] text-[#FFB800] drop-shadow-sm' : 'text-[#0054A6] opacity-50'} />
-               <span>Копите звезды для подарка!</span>
-             </div>
-             <div className="bg-white/90 px-3 py-1 rounded-full font-bold shadow-sm flex items-center gap-1">
-                <AnimatePresence mode="popLayout">
-                  <motion.span
-                    key={starsCount}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="inline-block text-[#0054A6]"
-                  >
-                     {starsCount}
-                  </motion.span>
-                </AnimatePresence>
-                <span className="text-[#65676B] font-medium text-[12px]">/ {maxStars}</span>
-             </div>
-           </div>
+          <StarProgress earned={STAR_PROGRESS[step]} />
         )}
 
         <AnimatePresence mode="wait">

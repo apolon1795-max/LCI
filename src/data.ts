@@ -11,10 +11,25 @@ export const SUBJECTS: Subject[] = [
 
 export const ASSESSMENTS = [
     { id: 'bad', title: 'Ребёнок не понимает тему', description: 'Тяжело даются базовые понятия и правила', emoji: '🤯' },
-    { id: 'behind', title: 'Отстает от программы', description: 'Есть пробелы после пропусков или нужно подтянуть оценки', emoji: '📉' },
+    { id: 'behind', title: 'Отстаёт от программы', description: 'Есть пробелы после пропусков или нужно подтянуть оценки', emoji: '📉' },
     { id: 'exam', title: 'Нужна подготовка к экзаменам', description: 'Целенаправленная подготовка к ОГЭ/ЕГЭ или ВПР', emoji: '🎯' },
     { id: 'good', title: 'Хочет знать больше', description: 'Интересуется предметом, готов к олимпиадам', emoji: '🚀' }
 ];
+
+export const getAssessmentsForGrade = (grade: string | null) => {
+    const gradeNumber = Number.parseInt(grade?.match(/\d+/)?.[0] || '1', 10);
+    return ASSESSMENTS.map((assessment) => {
+        if (assessment.id === 'exam' && gradeNumber < 9) {
+            return {
+                ...assessment,
+                title: 'Подготовка к ВПР и олимпиадам',
+                description: 'Целенаправленная подготовка к контрольным работам и школьным олимпиадам',
+                emoji: '🏆',
+            };
+        }
+        return assessment;
+    });
+};
 
 export const GRADES = [
     '1 класс', '2 класс', '3 класс', '4 класс',
@@ -38,44 +53,49 @@ export const TEACHERS: Teacher[] = [
         name: 'Анна Сергеевна',
         subjects: ALL_SUBJECTS,
         branches: ALL_BRANCHES,
-        photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600&h=800',
-        description: 'Эксперт ЕГЭ. 98% учеников сдают на 85+ баллов.',
-        quote: '«Сложное становится простым, если найти правильный подход к ученику!»'
+        photoUrl: '/teachers/demo-1.jpg',
+        description: 'Пример карточки преподавателя. Предметы, филиалы, опыт и достижения будут подтверждены LCI после съёмки.',
+        quote: '«Здесь появится короткая видеовизитка и обращение преподавателя к ученику.»',
+        isDemo: true,
     },
     {
         id: 't2',
         name: 'Мария Владимировна',
         subjects: ALL_SUBJECTS,
         branches: ALL_BRANCHES,
-        photoUrl: 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&q=80&w=600&h=800',
-        description: 'Опыт работы 10+ лет. Уникальная методика без зубрежки.',
-        quote: '«Учеба — это живой процесс общения, а не просто набор скучных правил.»'
+        photoUrl: '/teachers/demo-2.jpg',
+        description: 'Пример карточки преподавателя. Фактическое описание будет добавлено после интервью и согласования с LCI.',
+        quote: '«Здесь преподаватель расскажет, кому подойдёт его подход и как проходят занятия.»',
+        isDemo: true,
     },
     {
         id: 't3',
         name: 'Дмитрий Иванович',
         subjects: ALL_SUBJECTS,
         branches: ALL_BRANCHES,
-        photoUrl: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&q=80&w=600&h=800',
-        description: 'Готовит к олимпиадам. Практикующий специалист.',
-        quote: '«Мы не просто решаем задачи, мы учимся мыслить системно.»'
+        photoUrl: '/teachers/demo-3.jpg',
+        description: 'Пример карточки преподавателя. Факты о подготовке к экзаменам и олимпиадам пока не заявляются.',
+        quote: '«Здесь появится видеорассказ о занятиях, целях учеников и формате обратной связи.»',
+        isDemo: true,
     },
     {
         id: 't4',
         name: 'Екатерина Дмитриевна',
         subjects: ALL_SUBJECTS,
         branches: ALL_BRANCHES,
-        photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600&h=800',
-        description: 'Член предметной комиссии. Поможет полюбить свой предмет.',
-        quote: '«Наука вокруг нас! И изучать её безумно интересно.»'
+        photoUrl: '/teachers/demo-4.jpg',
+        description: 'Пример карточки преподавателя. Реальные предметы и расписание будут загружены из материалов LCI.',
+        quote: '«Здесь преподаватель объяснит свой подход и пригласит на пробное занятие.»',
+        isDemo: true,
     },
     {
         id: 't5',
         name: 'Светлана Юрьевна',
         subjects: ALL_SUBJECTS,
         branches: ALL_BRANCHES,
-        photoUrl: 'https://images.unsplash.com/photo-1594824436951-7f12bc58d551?auto=format&fit=crop&q=80&w=600&h=800',
-        description: 'Педагог высшей категории. Успешно готовит 1-11 классы.',
-        quote: '«Каждый ребенок талантлив, нужно лишь помочь ему это узнать.»'
+        photoUrl: '/teachers/demo-5.jpg',
+        description: 'Пример карточки преподавателя. Подтверждённые квалификация и опыт появятся после съёмки.',
+        quote: '«Здесь будет короткое знакомство, чтобы ребёнок мог сделать осознанный выбор.»',
+        isDemo: true,
     }
 ];

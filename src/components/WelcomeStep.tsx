@@ -12,12 +12,13 @@ export const WelcomeStep = ({ onNext }: { onNext: () => void }) => {
             Привет! Я LCI-Бот
           </h1>
           <p className="text-[15px] font-medium leading-[1.6] text-[#65676B] text-balance">
-            Помогу быстро подобрать идеального преподавателя для вашего ребенка. Начнем?
+            Помогу быстро подобрать подходящего преподавателя для вашего ребёнка. Начнём?
           </p>
         </div>
       </div>
 
       <button 
+        type="button"
         onClick={onNext}
         className="w-full mt-[30px] bg-[#E31E24] hover:bg-red-700 text-white font-bold py-[16px] px-[40px] uppercase rounded-[16px] shadow-[0_5px_15px_rgba(227,30,36,0.3)] transition-all active:scale-95 text-[16px] shrink-0"
       >

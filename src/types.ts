@@ -19,6 +19,12 @@ export interface AppState {
     parentEmail: string | null;
 }
 
+export interface ContactDetails {
+    name: string;
+    phone: string;
+    email: string;
+}
+
 export interface Subject {
     id: string;
     name: string;
@@ -44,4 +50,7 @@ export interface Teacher {
     photoUrl: string;
     description: string;
     quote: string;
+    videoUrl?: string;
+    videoPosterUrl?: string;
+    isDemo: boolean;
 }
