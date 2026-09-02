@@ -1,3 +1,4 @@
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import handler from './telegram-relay.js';
@@ -21,25 +22,16 @@ function makeResponse() {
   };
 }
 
-test('rejects requests without the relay secret', async () => {
-  const originalSecret = process.env.TELEGRAM_RELAY_SECRET;
-  process.env.TELEGRAM_RELAY_SECRET = 'expected-secret';
+test('rejects requests without bot-token authorization', async () => {
   const response = makeResponse();
 
-  try {
-    await handler({ method: 'POST', headers: {}, body: {} }, response);
-    assert.equal(response.statusCode, 401);
-    assert.deepEqual(response.payload, { ok: false, error: 'unauthorized' });
-  } finally {
-    if (originalSecret === undefined) delete process.env.TELEGRAM_RELAY_SECRET;
-    else process.env.TELEGRAM_RELAY_SECRET = originalSecret;
-  }
+  await handler({ method: 'POST', headers: {}, body: {} }, response);
+  assert.equal(response.statusCode, 401);
+  assert.deepEqual(response.payload, { ok: false, error: 'unauthorized' });
 });
 
 test('forwards an authenticated message to Telegram', async () => {
   const originalFetch = globalThis.fetch;
-  const originalSecret = process.env.TELEGRAM_RELAY_SECRET;
-  process.env.TELEGRAM_RELAY_SECRET = 'expected-secret';
 
   let forwardedBody;
   globalThis.fetch = async (_input, init) => {
@@ -54,10 +46,9 @@ test('forwards an authenticated message to Telegram', async () => {
   try {
     await handler({
       method: 'POST',
-      headers: { 'x-lci-relay-secret': 'expected-secret' },
+      headers: { authorization: 'Bearer 123456789:test_token_abcdefghijklmnopqrstuvwxyz' },
       body: {
-        botToken: '123456789:test_token_abcdefghijklmnopqrstuvwxyz',
-        chatId: '-100123',
+        chatId: '-5432834249',
         text: 'Новая заявка LCI',
       },
     }, response);
@@ -65,15 +56,12 @@ test('forwards an authenticated message to Telegram', async () => {
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.payload, { ok: true });
     assert.deepEqual(forwardedBody, {
-      chat_id: '-100123',
+      chat_id: '-5432834249',
       text: 'Новая заявка LCI',
       parse_mode: 'HTML',
       disable_web_page_preview: true,
     });
   } finally {
     globalThis.fetch = originalFetch;
-    if (originalSecret === undefined) delete process.env.TELEGRAM_RELAY_SECRET;
-    else process.env.TELEGRAM_RELAY_SECRET = originalSecret;
   }
 });
-
