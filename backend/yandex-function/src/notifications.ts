@@ -57,7 +57,7 @@ async function sendTelegram(payload: LeadSubmission, giftCode: string): Promise<
 
   const includeContacts = envFlag('TELEGRAM_INCLUDE_CONTACTS', false);
   const message = buildNotificationText(payload, giftCode, includeContacts);
-  const html = escapeHtml(message).replaceAll('\n', '<br>');
+  const html = escapeHtml(message);
 
   try {
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
