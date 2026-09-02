@@ -1,6 +1,6 @@
 # Развёртывание LCI в Yandex Cloud
 
-Инструкция рассчитана на YDB Serverless + Cloud Functions Node.js 22 + Object Storage. Команды содержат шаблоны; реальные ID, URL и секреты в Git не сохраняются.
+Инструкция рассчитана на YDB Serverless + Cloud Functions Node.js 22 и интерфейс с двумя serverless-маршрутами. Текущая проверенная реализация этих маршрутов находится в `api/lead.js` и `api/telegram-relay.js`. Команды содержат шаблоны; секреты в Git не сохраняются.
 
 ## 0. Финансовый стоп-контроль
 
@@ -53,7 +53,7 @@ yc serverless function create --name lci-lead-receiver
 - память: `256 МБ`;
 - timeout: `15 секунд`;
 - service account: `lci-lead-function-sa`;
-- переменные: все нужные значения из `backend/yandex-function/.env.example`;
+- переменные: все нужные значения из `backend/yandex-function/.env.example`, включая URL Telegram-ретранслятора, если прямое соединение с Telegram недоступно;
 - `LEAD_STORAGE_MODE` не задавать.
 
 Секреты `TELEGRAM_BOT_TOKEN` и `SMTP_PASSWORD` не публиковать и не сохранять в Git. Функция авторизуется в YDB через метаданные привязанного сервисного аккаунта. Источники: [создание версии функции](https://yandex.cloud/ru/docs/functions/operations/function/version-manage), [официальный сценарий Cloud Functions → YDB](https://yandex.cloud/ru/docs/tutorials/serverless/connect-from-cf-nodejs).
@@ -66,33 +66,38 @@ yc serverless function allow-unauthenticated-invoke lci-lead-receiver
 
 Публичность вызова не означает принятие любых браузерных запросов: код дополнительно проверяет точный `Origin` по `ALLOWED_ORIGINS`. Источник команды: [публичный вызов функции](https://yandex.cloud/ru/docs/functions/operations/function/function-public).
 
-## 4. Собрать интерфейс
+## 4. Настроить интерфейс
 
-Создайте локальный `.env.production`:
+Для интерфейса нужна только согласованная прямая ссылка на документ LCI по персональным данным:
 
 ```dotenv
-VITE_LEAD_ENDPOINT=https://functions.yandexcloud.net/FUNCTION_ID
 VITE_PRIVACY_URL=https://ПРЯМАЯ-СОГЛАСОВАННАЯ-ССЫЛКА-LCI
 ```
 
-Затем:
+Маршрут формы зафиксирован как `/api/lead`. Серверный маршрут перенаправляет запрос в Yandex Cloud Function и не раскрывает секреты. Если создаётся новая функция, измените `YANDEX_LEAD_ENDPOINT` в окружении хостинга либо резервное значение `DEFAULT_YANDEX_LEAD_ENDPOINT` в `api/lead.js`.
+
+Затем выполните проверки:
 
 ```bash
 npm ci
 npm run check
 ```
 
-## 5. Опубликовать `dist` в Object Storage
+## 5. Опубликовать интерфейс и serverless-маршруты
 
-Создайте публичный бакет, загрузите содержимое `dist`, включите статический хостинг и укажите `index.html` одновременно главной и error-страницей SPA. Готовый шаблон настроек: `backend/yandex-function/website-settings.json`.
+Подключите репозиторий к хостингу, который поддерживает Vite и Node.js serverless-функции из каталога `api`. Для текущего Vercel-проекта отдельная переменная `VITE_LEAD_ENDPOINT` не нужна. После изменения переменных окружения запустите новую production-сборку.
 
-```bash
-yc storage bucket update \
-  --name BUCKET_NAME \
-  --website-settings-from-file backend/yandex-function/website-settings.json
+Для Telegram укажите в Yandex Cloud Function:
+
+```dotenv
+TELEGRAM_RELAY_URL=https://АДРЕС-ПРИЛОЖЕНИЯ/api/telegram-relay
 ```
 
-После получения финального origin добавьте его в `ALLOWED_ORIGINS` функции и создайте новую версию функции. Источник: [статический хостинг Object Storage](https://yandex.cloud/ru/docs/storage/operations/hosting/setup).
+Ретранслятор получает токен бота только в заголовке запроса функции, проверяет формат токена и разрешает отправку только в зафиксированный чат LCI. Отдельный секрет Vercel для него не требуется.
+
+Статический Object Storage без обратного прокси не подходит для этой версии: на том же домене должны отвечать `/api/lead` и `/api/telegram-relay`. При переносе на другой хостинг сохраните эти два маршрута и обновите `ALLOWED_ORIGINS`, `LCI_PUBLIC_ORIGIN` и `TELEGRAM_RELAY_URL`.
+
+После получения финального origin добавьте его в `ALLOWED_ORIGINS` функции и создайте новую версию функции. Текущий Vercel Hobby предназначен только для демонстрации: коммерческое использование должно соответствовать [условиям Vercel](https://vercel.com/docs/limits/fair-use-guidelines) либо проект нужно перенести на другой совместимый хостинг.
 
 ## 6. Контрольный тест
 

@@ -2,7 +2,8 @@ import { BRANCHES, getAssessmentsForGrade, SUBJECTS, TEACHERS } from '../data';
 import { AppState, ContactDetails } from '../types';
 
 const DEFAULT_PRIVACY_URL = 'https://lci-izh.ru/content/kontakti';
-const REQUEST_TIMEOUT_MS = 12_000;
+const LEAD_ENDPOINT = '/api/lead';
+const REQUEST_TIMEOUT_MS = 25_000;
 const PHONE_DIGITS_PATTERN = /^\d{10,11}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,7 +61,7 @@ export interface LeadSubmission {
   };
 }
 
-type LeadErrorCode = 'not_configured' | 'timeout' | 'network' | 'rejected' | 'invalid_response';
+type LeadErrorCode = 'timeout' | 'network' | 'rejected' | 'invalid_response';
 
 export class LeadSubmissionError extends Error {
   constructor(public readonly code: LeadErrorCode, message: string) {
@@ -155,26 +156,6 @@ export function buildLeadSubmission(
   };
 }
 
-function getEndpoint(): string {
-  const endpoint = import.meta.env.VITE_LEAD_ENDPOINT?.trim();
-  if (!endpoint) {
-    throw new LeadSubmissionError('not_configured', 'Endpoint приёма заявок не настроен');
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(endpoint);
-  } catch {
-    throw new LeadSubmissionError('not_configured', 'Endpoint приёма заявок указан неверно');
-  }
-
-  const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
-  if (parsed.protocol !== 'https:' && !(isLocal && parsed.protocol === 'http:')) {
-    throw new LeadSubmissionError('not_configured', 'Endpoint должен использовать HTTPS');
-  }
-  return parsed.toString();
-}
-
 function isLeadReceipt(value: unknown): value is LeadReceipt {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<LeadReceipt> & { stored?: unknown };
@@ -196,7 +177,7 @@ export async function submitLead(payload: LeadSubmission): Promise<LeadReceipt> 
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(getEndpoint(), {
+    const response = await fetch(LEAD_ENDPOINT, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -239,8 +220,6 @@ export function getLeadErrorMessage(error: unknown): string {
   }
 
   switch (error.code) {
-    case 'not_configured':
-      return 'Онлайн-запись пока настраивается. Позвоните в LCI по номеру +7 (912) 750-23-04.';
     case 'timeout':
       return 'Ответ сервера задержался. Проверьте интернет и повторите отправку — данные не потеряны.';
     case 'network':
