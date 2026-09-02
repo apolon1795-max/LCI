@@ -1,3 +1,4 @@
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deliverNotifications } from './notifications.js';
@@ -10,14 +11,12 @@ test('uses Telegram-compatible HTML with literal newlines', async () => {
     chatId: process.env.TELEGRAM_CHAT_ID,
     includeContacts: process.env.TELEGRAM_INCLUDE_CONTACTS,
     relayUrl: process.env.TELEGRAM_RELAY_URL,
-    relaySecret: process.env.TELEGRAM_RELAY_SECRET,
   };
 
   process.env.TELEGRAM_BOT_TOKEN = 'test-token';
   process.env.TELEGRAM_CHAT_ID = '-100123';
   process.env.TELEGRAM_INCLUDE_CONTACTS = 'false';
   delete process.env.TELEGRAM_RELAY_URL;
-  delete process.env.TELEGRAM_RELAY_SECRET;
 
   let requestBody: Record<string, unknown> | undefined;
   globalThis.fetch = async (_input, init) => {
@@ -49,8 +48,6 @@ test('uses Telegram-compatible HTML with literal newlines', async () => {
     else process.env.TELEGRAM_INCLUDE_CONTACTS = originalEnv.includeContacts;
     if (originalEnv.relayUrl === undefined) delete process.env.TELEGRAM_RELAY_URL;
     else process.env.TELEGRAM_RELAY_URL = originalEnv.relayUrl;
-    if (originalEnv.relaySecret === undefined) delete process.env.TELEGRAM_RELAY_SECRET;
-    else process.env.TELEGRAM_RELAY_SECRET = originalEnv.relaySecret;
   }
 });
 
@@ -60,13 +57,11 @@ test('uses the authenticated HTTPS relay when configured', async () => {
     token: process.env.TELEGRAM_BOT_TOKEN,
     chatId: process.env.TELEGRAM_CHAT_ID,
     relayUrl: process.env.TELEGRAM_RELAY_URL,
-    relaySecret: process.env.TELEGRAM_RELAY_SECRET,
   };
 
   process.env.TELEGRAM_BOT_TOKEN = '123456789:test_token_abcdefghijklmnopqrstuvwxyz';
   process.env.TELEGRAM_CHAT_ID = '-100123';
   process.env.TELEGRAM_RELAY_URL = 'https://example.vercel.app/api/telegram-relay';
-  process.env.TELEGRAM_RELAY_SECRET = 'relay-secret';
 
   let requestedUrl = '';
   let requestHeaders: HeadersInit | undefined;
@@ -85,8 +80,11 @@ test('uses the authenticated HTTPS relay when configured', async () => {
     const statuses = await deliverNotifications(makeValidLead(), 'LCI-1234ABCD');
     assert.equal(statuses.telegram, 'sent');
     assert.equal(requestedUrl, 'https://example.vercel.app/api/telegram-relay');
-    assert.equal(new Headers(requestHeaders).get('X-LCI-Relay-Secret'), 'relay-secret');
-    assert.equal(requestBody?.botToken, process.env.TELEGRAM_BOT_TOKEN);
+    assert.equal(
+      new Headers(requestHeaders).get('Authorization'),
+      `Bearer ${process.env.TELEGRAM_BOT_TOKEN}`,
+    );
+    assert.equal(requestBody?.botToken, undefined);
     assert.equal(requestBody?.chatId, '-100123');
     assert.match(String(requestBody?.text), /Новая заявка LCI/);
   } finally {
@@ -97,8 +95,5 @@ test('uses the authenticated HTTPS relay when configured', async () => {
     else process.env.TELEGRAM_CHAT_ID = originalEnv.chatId;
     if (originalEnv.relayUrl === undefined) delete process.env.TELEGRAM_RELAY_URL;
     else process.env.TELEGRAM_RELAY_URL = originalEnv.relayUrl;
-    if (originalEnv.relaySecret === undefined) delete process.env.TELEGRAM_RELAY_SECRET;
-    else process.env.TELEGRAM_RELAY_SECRET = originalEnv.relaySecret;
   }
 });
-

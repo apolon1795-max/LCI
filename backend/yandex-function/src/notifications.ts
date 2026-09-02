@@ -88,13 +88,7 @@ async function sendTelegram(payload: LeadSubmission, giftCode: string): Promise<
   const html = escapeHtml(message);
 
   const relayUrl = process.env.TELEGRAM_RELAY_URL?.trim();
-  const relaySecret = process.env.TELEGRAM_RELAY_SECRET?.trim();
-  if (relayUrl || relaySecret) {
-    if (!relayUrl || !relaySecret) {
-      console.error('Telegram relay configuration is incomplete');
-      return 'failed';
-    }
-
+  if (relayUrl) {
     let parsedRelayUrl: URL;
     try {
       parsedRelayUrl = new URL(relayUrl);
@@ -112,9 +106,9 @@ async function sendTelegram(payload: LeadSubmission, giftCode: string): Promise<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-LCI-Relay-Secret': relaySecret,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ botToken: token, chatId, text: html }),
+        body: JSON.stringify({ chatId, text: html }),
         signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
       });
       const body = await response.json().catch(() => null) as TelegramRelayResponse | null;
