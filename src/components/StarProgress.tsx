@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { Gift, Star } from 'lucide-react';
 
 interface Props {
@@ -38,20 +38,12 @@ export const StarProgress = ({ earned, total = 5 }: Props) => {
 
         <div className="flex min-w-0 items-center gap-2 text-[12px] font-semibold text-[#0054A6]">
           {giftUnlocked ? <Gift size={16} className="shrink-0 text-[#E31E24]" /> : null}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={giftUnlocked ? 'unlocked' : earned}
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              transition={{ duration: 0.18 }}
-              className="truncate"
-            >
-              {giftUnlocked ? 'Подарок открыт' : `До подарка: ${total - earned}`}
-            </motion.span>
-          </AnimatePresence>
+          <span className="truncate">
+            {giftUnlocked ? 'Подарок открыт' : `До подарка: ${total - earned}`}
+          </span>
         </div>
       </div>
     </div>
   );
 };
+
