@@ -1,20 +1,103 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# LCI — подбор преподавателя и запись на пробное занятие
 
-# Run and deploy your AI Studio app
+Мини-приложение помогает родителю и ребёнку выбрать школьный предмет, цель, филиал и преподавателя по видеовизитке. После подтверждённого сохранения заявки пользователь получает стабильный код демо-подарка.
 
-This contains everything you need to run your app locally.
+## Что уже реализовано
 
-View your app in AI Studio: https://ai.studio/apps/b7ffba86-632b-4187-b342-7cd390658f9d
+- шесть шагов подбора и геймификация с пятью звёздами;
+- карточки преподавателей, готовые к загрузке MP4-визиток;
+- честная маркировка текущих преподавателей и подарка как демо;
+- обязательное согласие на обработку персональных данных;
+- реальное сохранение заявки вместо имитации и `console.log`;
+- идемпотентная запись в YDB: повтор запроса с тем же `leadId` не создаёт второй лид;
+- уведомление в Telegram и почтовый fallback;
+- успех на экране только после ответа `stored: true` от сервера;
+- стабильный код `LCI-XXXXXXXX`, общий для интерфейса, YDB, Telegram и email;
+- CORS-allowlist, ограничение размера запроса, honeypot и проверка времени заполнения.
 
-## Run Locally
+## Локальный запуск
 
-**Prerequisites:**  Node.js
+Требуется Node.js 22+.
 
+```bash
+npm install
+npm --prefix backend/yandex-function install
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+В первом терминале:
+
+```bash
+npm run backend:dev
+```
+
+Во втором терминале создайте `.env.local` на основе `.env.example`, но укажите:
+
+```dotenv
+VITE_LEAD_ENDPOINT=http://127.0.0.1:8787
+VITE_PRIVACY_URL=https://lci-izh.ru/content/kontakti
+```
+
+Затем:
+
+```bash
+npm run dev
+```
+
+Проверки:
+
+```bash
+npm run check
+npm run backend:test
+```
+
+## Производственная схема
+
+```text
+Сайт LCI / отдельная ссылка
+          ↓
+  статический React-интерфейс
+          ↓ HTTPS
+  Yandex Cloud Function
+       ↙       ↓       ↘
+    YDB     Telegram    email
+  реестр     быстро     fallback
+```
+
+YDB является источником истины: заявка сначала сохраняется в российской облачной БД, и только потом запускаются уведомления. Сбой Telegram или почты не стирает лид.
+
+Контакты в Telegram по умолчанию отключены (`TELEGRAM_INCLUDE_CONTACTS=false`). Включать их следует только после решения LCI по обработке и передаче персональных данных. Полные контакты остаются в YDB; email-уведомление можно настроить отдельно.
+
+## Встраивание
+
+После публикации приложение можно дать отдельной ссылкой или встроить в страницу LCI:
+
+```html
+<iframe
+  src="https://АДРЕС-ПРИЛОЖЕНИЯ"
+  title="Подбор преподавателя LCI"
+  width="100%"
+  height="760"
+  loading="lazy"
+  style="border:0;max-width:520px"
+></iframe>
+```
+
+## Передача LCI
+
+- [ТЗ на контент, съёмку и решения LCI](docs/LCI_HANDOFF_TZ.md)
+- [Инструкция развёртывания в Yandex Cloud](docs/DEPLOYMENT_YANDEX_CLOUD.md)
+- [Реестр источников демонстрационных изображений](docs/DEMO_ASSET_SOURCES.md)
+- [Пример переменных интерфейса](.env.example)
+- [Пример переменных функции](backend/yandex-function/.env.example)
+
+## Важное про «бесплатно»
+
+Схема рассчитана на малый объём и бесплатные лимиты serverless-сервисов, но это не обещание нулевого счёта при любом трафике. Yandex Cloud требует подключённый платёжный аккаунт, а превышение бесплатных лимитов тарифицируется. Актуальные лимиты и условия нужно проверять перед передачей:
+
+- [бесплатный объём serverless-сервисов](https://yandex.cloud/ru/docs/billing/concepts/serverless-free-tier);
+- [тарифы Cloud Functions](https://yandex.cloud/ru/docs/functions/pricing);
+- [тарифы YDB Serverless](https://yandex.cloud/ru/docs/ydb/pricing/serverless);
+- [тарифы Object Storage](https://yandex.cloud/ru/docs/storage/pricing);
+- [тарифы Cloud Postbox](https://yandex.cloud/ru/docs/postbox/pricing).
+
+Текущий Vercel Hobby не рассматривается как финальный коммерческий хостинг: [Vercel ограничивает Hobby некоммерческим использованием](https://vercel.com/docs/limits/fair-use-guidelines).
