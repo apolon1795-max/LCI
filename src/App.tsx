@@ -1,5 +1,5 @@
+
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { AppStep, AppState, ContactDetails } from './types';
 import { WelcomeStep } from './components/WelcomeStep';
 import { SubjectStep } from './components/SubjectStep';
@@ -161,18 +161,9 @@ export default function App() {
           <StarProgress earned={STAR_PROGRESS[step]} />
         )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="flex-1 flex flex-col h-full min-h-0"
-          >
-            {renderStep()}
-          </motion.div>
-        </AnimatePresence>
+        <div key={step} className="flex-1 flex flex-col h-full min-h-0">
+          {renderStep()}
+        </div>
       </main>
     </div>
   );
