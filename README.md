@@ -30,14 +30,13 @@ npm --prefix backend/yandex-function install
 npm run backend:dev
 ```
 
-Во втором терминале создайте `.env.local` на основе `.env.example`, но укажите:
+Во втором терминале создайте `.env.local` на основе `.env.example` и при необходимости укажите прямую ссылку LCI на документ по персональным данным:
 
 ```dotenv
-VITE_LEAD_ENDPOINT=http://127.0.0.1:8787
 VITE_PRIVACY_URL=https://lci-izh.ru/content/kontakti
 ```
 
-Затем:
+Затем запустите интерфейс. Vite автоматически передаст локальные запросы `/api/lead` серверу на порту `8787`:
 
 ```bash
 npm run dev
@@ -57,13 +56,15 @@ npm run backend:test
           ↓
   статический React-интерфейс
           ↓ HTTPS
+  Vercel `/api/lead`
+          ↓ HTTPS
   Yandex Cloud Function
-       ↙       ↓       ↘
-    YDB     Telegram    email
-  реестр     быстро     fallback
+       ├─→ YDB — реестр
+       ├─→ Vercel relay ─→ Telegram
+       └─→ email — резервный канал
 ```
 
-YDB является источником истины: заявка сначала сохраняется в российской облачной БД, и только потом запускаются уведомления. Сбой Telegram или почты не стирает лид.
+YDB является источником истины: заявка сначала сохраняется в российской облачной БД, и только потом запускаются уведомления. Сбой Telegram или почты не стирает лид. Браузер отправляет форму на свой же домен `/api/lead`, поэтому ему не требуется прямое соединение с Yandex Cloud Function.
 
 Контакты в Telegram по умолчанию отключены (`TELEGRAM_INCLUDE_CONTACTS=false`). Включать их следует только после решения LCI по обработке и передаче персональных данных. Полные контакты остаются в YDB; email-уведомление можно настроить отдельно.
 
@@ -100,4 +101,4 @@ YDB является источником истины: заявка снача�
 - [тарифы Object Storage](https://yandex.cloud/ru/docs/storage/pricing);
 - [тарифы Cloud Postbox](https://yandex.cloud/ru/docs/postbox/pricing).
 
-Текущий Vercel Hobby не рассматривается как финальный коммерческий хостинг: [Vercel ограничивает Hobby некоммерческим использованием](https://vercel.com/docs/limits/fair-use-guidelines).
+Текущий Vercel Hobby подходит для технической демонстрации, но не рассматривается как финальный коммерческий хостинг: [Vercel ограничивает Hobby некоммерческим использованием](https://vercel.com/docs/limits/fair-use-guidelines). Перед коммерческим запуском LCI нужно перенести проект в допустимый тариф/аккаунт либо на совместимый хостинг с двумя serverless-маршрутами `/api/lead` и `/api/telegram-relay`.
