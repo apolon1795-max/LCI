@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --port=4173 --host=0.0.0.0",
     "lint": "tsc --noEmit",
-    "check": "npm run lint && npm run build",
+    "test:relay": "node --test api/telegram-relay.test.js",
+    "check": "npm run lint && npm run test:relay && npm run build",
     "backend:dev": "npm --prefix backend/yandex-function run dev",
     "backend:test": "npm --prefix backend/yandex-function test"
   },
@@ -27,3 +28,4 @@
     "vite": "^6.2.0"
   }
 }
+
