@@ -1,13 +1,7 @@
-import { timingSafeEqual } from 'node:crypto';
 
 const TELEGRAM_TIMEOUT_MS = 8_000;
 const MAX_MESSAGE_LENGTH = 4_096;
-
-function secureEqual(left, right) {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
-}
+const LCI_TELEGRAM_CHAT_ID = '-5432834249';
 
 function firstHeader(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -32,19 +26,20 @@ export default async function handler(request, response) {
     return response.status(405).json({ ok: false, error: 'method-not-allowed' });
   }
 
-  const expectedSecret = process.env.TELEGRAM_RELAY_SECRET?.trim();
-  const providedSecret = firstHeader(request.headers['x-lci-relay-secret'])?.trim();
-  if (!expectedSecret || !providedSecret || !secureEqual(expectedSecret, providedSecret)) {
+  const authorization = firstHeader(request.headers.authorization)?.trim() ?? '';
+  const botToken = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length).trim()
+    : '';
+  if (!botToken) {
     return response.status(401).json({ ok: false, error: 'unauthorized' });
   }
 
   const body = parseBody(request.body);
-  const botToken = typeof body?.botToken === 'string' ? body.botToken.trim() : '';
   const chatId = typeof body?.chatId === 'string' ? body.chatId.trim() : '';
   const text = typeof body?.text === 'string' ? body.text : '';
 
   if (!/^\d{8,12}:[A-Za-z0-9_-]{30,}$/.test(botToken)
-    || !/^-?\d{1,20}$/.test(chatId)
+    || chatId !== LCI_TELEGRAM_CHAT_ID
     || !text
     || text.length > MAX_MESSAGE_LENGTH) {
     return response.status(400).json({ ok: false, error: 'invalid-payload' });
@@ -82,4 +77,3 @@ export default async function handler(request, response) {
     });
   }
 }
-
