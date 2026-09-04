@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import handler from './telegram-relay.js';
@@ -64,4 +63,56 @@ test('forwards an authenticated message to Telegram', async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('forwards an authenticated Novatoria quiz message to Telegram', async () => {
+  const originalFetch = globalThis.fetch;
+
+  let forwardedBody;
+  globalThis.fetch = async (_input, init) => {
+    forwardedBody = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  const response = makeResponse();
+  try {
+    await handler({
+      method: 'POST',
+      headers: { authorization: 'Bearer 123456789:test_token_abcdefghijklmnopqrstuvwxyz' },
+      body: {
+        chatId: '-4819283264',
+        text: 'Тестовая заявка Новатории',
+      },
+    }, response);
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.payload, { ok: true });
+    assert.deepEqual(forwardedBody, {
+      chat_id: '-4819283264',
+      text: 'Тестовая заявка Новатории',
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('rejects an authenticated message for an unapproved chat', async () => {
+  const response = makeResponse();
+
+  await handler({
+    method: 'POST',
+    headers: { authorization: 'Bearer 123456789:test_token_abcdefghijklmnopqrstuvwxyz' },
+    body: {
+      chatId: '-1000000000000',
+      text: 'Unexpected destination',
+    },
+  }, response);
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.payload, { ok: false, error: 'invalid-payload' });
 });

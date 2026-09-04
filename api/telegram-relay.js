@@ -1,7 +1,9 @@
-
 const TELEGRAM_TIMEOUT_MS = 8_000;
 const MAX_MESSAGE_LENGTH = 4_096;
-const LCI_TELEGRAM_CHAT_ID = '-5432834249';
+const ALLOWED_TELEGRAM_CHAT_IDS = new Set([
+  '-5432834249', // LCI leads
+  '-4819283264', // Novatoria entrepreneur quiz leads
+]);
 
 function firstHeader(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -39,7 +41,7 @@ export default async function handler(request, response) {
   const text = typeof body?.text === 'string' ? body.text : '';
 
   if (!/^\d{8,12}:[A-Za-z0-9_-]{30,}$/.test(botToken)
-    || chatId !== LCI_TELEGRAM_CHAT_ID
+    || !ALLOWED_TELEGRAM_CHAT_IDS.has(chatId)
     || !text
     || text.length > MAX_MESSAGE_LENGTH) {
     return response.status(400).json({ ok: false, error: 'invalid-payload' });
